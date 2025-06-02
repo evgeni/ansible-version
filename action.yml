@@ -1,0 +1,35 @@
+---
+name: 'Derive Ansibke versions'
+description: "Determine Ansible version testing matrix based on the runtime.yml requires_ansible field"
+inputs:
+  filename:
+    description: 'Path to runtime.yml'
+    required: false
+    default: 'meta/runtime.yml'
+  repository:
+    description: 'Repository to checkout'
+    required: false
+    type: string
+  ref:
+    description: 'Git ref to checkout'
+    required: false
+    type: string
+  include-devel:
+    description: 'Whether to include `devel` in the list of versions'
+    default: true
+    required: false
+    type: boolean
+outputs:
+  versions:
+    description: "Ansible versions"
+    value: ${{ steps.script.outputs.ansible }}
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        repository: ${{ inputs.repository }}
+        ref: ${{ inputs.ref }}
+    - id: script
+      run: ${{ github.action_path }}/ansible-versions ${{ inputs.include-devel && '--include-devel' }} ${{ inputs.filename }}
+      shell: bash
