@@ -19,6 +19,11 @@ inputs:
     default: true
     required: false
     type: boolean
+  include-pre:
+    description: 'Whether to include pre-releases in the list of versions'
+    default: true
+    required: false
+    type: boolean
 outputs:
   versions:
     description: "Ansible versions"
@@ -31,5 +36,5 @@ runs:
         repository: ${{ inputs.repository }}
         ref: ${{ inputs.ref }}
     - id: script
-      run: ${{ github.action_path }}/ansible-versions ${{ inputs.include-devel && '--include-devel' }} ${{ inputs.filename }}
+      run: ${{ github.action_path }}/ansible-versions ${{ inputs.include-devel && '--include-devel' }} ${{ inputs.include-pre && '--include-pre' }} ${{ inputs.filename }}
       shell: bash

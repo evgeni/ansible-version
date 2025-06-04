@@ -6,14 +6,14 @@ import os
 import sys
 
 import packaging.specifiers
+import packaging.version
+import requests
 import yaml
-
-MIN_VERSION = 9
-MAX_VERSION = 19
 
 parser = argparse.ArgumentParser()
 parser.add_argument("filename")
 parser.add_argument("--include-devel", action="store_true")
+parser.add_argument("--include-pre", action="store_true")
 args = parser.parse_args()
 
 with open(args.filename) as metafile:
@@ -21,13 +21,24 @@ with open(args.filename) as metafile:
 
 requirement = packaging.specifiers.SpecifierSet(metadata["requires_ansible"])
 
-versions = []
-for v in [f"2.{minor}" for minor in range(MIN_VERSION, MAX_VERSION+1)]:
-    if requirement.contains(f"{v}.99"):
-        versions.append(f"stable-{v}")
+core_versions = requests.get("https://pypi.org/simple/ansible-core/", headers={"Accept": "application/vnd.pypi.simple.v1+json"}).json()["versions"]
+static_versions = ["2.9.27", "2.10.17"]
+available_versions = [packaging.version.Version(v) for v in core_versions+static_versions]
+
+if not args.include_pre:
+    available_versions = filter(lambda v: not v.is_prerelease, available_versions)
+
+available_versions = filter(lambda v: v.major >= 2, available_versions)
+
+branches = set()
+for version in available_versions:
+    if requirement.contains(f"{version.major}.{version.minor}.99"):
+        branches.add(f"stable-{version.major}.{version.minor}")
 
 if args.include_devel:
-    versions.append("devel")
+    branches.add("devel")
+
+versions = sorted(branches)
 
 if os.environ.get("GITHUB_ACTIONS"):
     if github_output := os.environ.get("GITHUB_OUTPUT"):
